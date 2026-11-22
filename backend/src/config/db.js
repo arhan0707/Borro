@@ -12,7 +12,6 @@ const poolConfig = process.env.DATABASE_URL
     ? {
         connectionString: process.env.DATABASE_URL,
         ssl: isProduction ? { rejectUnauthorized: false } : undefined,
-        options: '-c search_path=public',
     }
     : {
         host: process.env.DB_HOST,
@@ -20,7 +19,6 @@ const poolConfig = process.env.DATABASE_URL
         database: process.env.DB_NAME,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
-        options: '-c search_path=public',
     }
 
 export const pool = new Pool(poolConfig)
