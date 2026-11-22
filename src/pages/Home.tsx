@@ -9,6 +9,9 @@ import {
   Calculator,
   Headphones,
   Laptop,
+  Compass,
+  Users,
+  Share2,
 } from 'lucide-react'
 
 const products = [
@@ -16,6 +19,27 @@ const products = [
   { name: 'Engineering Textbook', category: 'Books', price: '₹10/day', icon: BookOpen },
   { name: 'Wireless Headphones', category: 'Accessories', price: '₹25/day', icon: Headphones },
   { name: 'Laptop Stand', category: 'Accessories', price: '₹20/day', icon: Laptop },
+]
+
+const steps = [
+  {
+    number: '01',
+    title: 'Explore',
+    description: 'Discover useful items, lost belongings, campus events, and student opportunities.',
+    icon: Compass,
+  },
+  {
+    number: '02',
+    title: 'Connect',
+    description: 'Connect with fellow students, contact owners, and send requests.',
+    icon: Users,
+  },
+  {
+    number: '03',
+    title: 'Share',
+    description: 'Rent, sell, exchange, or give away things within your campus community.',
+    icon: Share2,
+  },
 ]
 
 export default function Home() {
@@ -44,6 +68,7 @@ export default function Home() {
       style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}
       className="min-h-screen transition-colors duration-300"
     >
+      {/* HERO SECTION */}
       <section className="px-6 md:px-16 py-20 md:py-28">
         <motion.div
           initial={{ opacity: 0, y: 25 }}
@@ -93,10 +118,7 @@ export default function Home() {
                 className="outline-none w-full text-sm bg-transparent"
               />
 
-              <button
-                type="submit"
-                className="sr-only"
-              >
+              <button type="submit" className="sr-only">
                 Search
               </button>
             </form>
@@ -115,26 +137,23 @@ export default function Home() {
         </motion.div>
       </section>
 
-      <section className="px-6 md:px-16 pb-24">
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <p
-              className="text-sm font-medium"
-              style={{ color: 'var(--accent)' }}
-            >
-              BORRO MARKETPLACE
-            </p>
-            <h2 className="text-3xl font-semibold mt-2">
-              Find what you need.
-            </h2>
-          </div>
-
-          <a
-            href="/marketplace"
-            className="hidden sm:flex items-center gap-2 text-sm"
+      {/* DISCOVER SECTION */}
+      <section className="px-6 md:px-16 pb-20">
+        <div className="mb-8">
+          <p
+            className="text-sm font-medium tracking-widest uppercase"
+            style={{ color: 'var(--accent)' }}
           >
-            View all <ArrowUpRight size={17} />
-          </a>
+            DISCOVER CAMPUS ESSENTIALS
+          </p>
+
+          <h2 className="text-3xl font-semibold mt-2">
+            A little help goes a long way.
+          </h2>
+
+          <p className="text-sm mt-3" style={{ color: 'var(--muted)' }}>
+            Find useful things shared by students in your campus community.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -182,11 +201,83 @@ export default function Home() {
                   >
                     {product.price}
                   </span>
+
                   <ArrowUpRight
                     size={18}
                     style={{ color: 'var(--muted)' }}
                   />
                 </div>
+              </motion.div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* HOW BORRO WORKS */}
+      <section
+        id="how-borro-works"
+        className="px-6 md:px-16 py-20 border-t"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <div className="max-w-2xl mb-12">
+          <p
+            className="text-sm font-medium tracking-widest uppercase"
+            style={{ color: 'var(--accent)' }}
+          >
+            SIMPLE AS THAT
+          </p>
+
+          <h2 className="text-3xl md:text-4xl font-semibold mt-3">
+            How Borro works.
+          </h2>
+
+          <p className="mt-4 leading-relaxed" style={{ color: 'var(--muted)' }}>
+            Making campus life easier starts with three simple steps.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {steps.map((step, index) => {
+            const Icon = step.icon
+
+            return (
+              <motion.div
+                key={step.number}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15, duration: 0.5 }}
+                className="rounded-2xl border p-7"
+                style={{
+                  backgroundColor: 'var(--surface)',
+                  borderColor: 'var(--border)',
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className="text-sm font-semibold"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    {step.number}
+                  </span>
+
+                  <Icon
+                    size={25}
+                    strokeWidth={1.5}
+                    style={{ color: 'var(--accent)' }}
+                  />
+                </div>
+
+                <h3 className="text-xl font-semibold mt-8">
+                  {step.title}
+                </h3>
+
+                <p
+                  className="text-sm leading-relaxed mt-3"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  {step.description}
+                </p>
               </motion.div>
             )
           })}
