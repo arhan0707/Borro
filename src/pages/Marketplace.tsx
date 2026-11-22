@@ -1,7 +1,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Plus, X, CalendarDays } from 'lucide-react'
+import { Search, Plus, X } from 'lucide-react'
 import { apiRequest } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
