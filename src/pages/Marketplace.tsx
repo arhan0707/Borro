@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, Plus, X } from 'lucide-react'
 import { apiRequest } from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -35,11 +35,14 @@ const initialForm = {
 
 export default function Marketplace() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
 
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(
+    () => searchParams.get('search') || ''
+  )
   const [category, setCategory] = useState('All')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(initialForm)
@@ -67,13 +70,16 @@ export default function Marketplace() {
       setError('')
 
       const data = await apiRequest('/listings')
+
       const rows = Array.isArray(data)
         ? data
         : data.listings || data.data || []
 
       setListings(rows)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load listings')
+      setError(
+        err instanceof Error ? err.message : 'Unable to load listings'
+      )
     } finally {
       setLoading(false)
     }
@@ -83,11 +89,20 @@ export default function Marketplace() {
     loadListings()
   }, [])
 
+  // Read search query passed from the homepage.
+  useEffect(() => {
+    setSearch(searchParams.get('search') || '')
+  }, [searchParams])
+
+  // Filter available listings by search term and category.
   const filteredListings = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase()
+
     return listings.filter((item) => {
       const matchesSearch =
-        item.item_name.toLowerCase().includes(search.toLowerCase()) ||
-        (item.description || '').toLowerCase().includes(search.toLowerCase())
+        item.item_name.toLowerCase().includes(searchTerm) ||
+        (item.description || '').toLowerCase().includes(searchTerm) ||
+        (item.category || '').toLowerCase().includes(searchTerm)
 
       const matchesCategory =
         category === 'All' || item.category === category
@@ -96,7 +111,9 @@ export default function Marketplace() {
     })
   }, [listings, search, category])
 
-  async function handleCreateListing(e: React.FormEvent<HTMLFormElement>) {
+  async function handleCreateListing(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault()
 
     if (!user) {
@@ -123,15 +140,20 @@ export default function Marketplace() {
       setForm(initialForm)
       setShowForm(false)
       setMessage('Your listing has been created successfully!')
+
       await loadListings()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create listing')
+      setError(
+        err instanceof Error ? err.message : 'Could not create listing'
+      )
     } finally {
       setSaving(false)
     }
   }
 
-  async function handleRentalRequest(e: React.FormEvent<HTMLFormElement>) {
+  async function handleRentalRequest(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault()
 
     if (!user || !selectedListing) {
@@ -139,7 +161,9 @@ export default function Marketplace() {
       return
     }
 
-    if (Number(selectedListing.owner_id) === Number(user.user_id)) {
+    if (
+      Number(selectedListing.owner_id) === Number(user.user_id)
+    ) {
       setMessage("You can't request your own item.")
       return
     }
@@ -156,7 +180,11 @@ export default function Marketplace() {
 
     const start = new Date(`${startDate}T00:00:00`)
     const end = new Date(`${endDate}T00:00:00`)
-    const days = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1
+
+    const days =
+      Math.floor(
+        (end.getTime() - start.getTime()) / 86400000
+      ) + 1
 
     try {
       setRequesting(true)
@@ -168,7 +196,8 @@ export default function Marketplace() {
           listing_id: selectedListing.listing_id,
           start_date: startDate,
           end_date: endDate,
-          total_amount: days * Number(selectedListing.price || 0),
+          total_amount:
+            days * Number(selectedListing.price || 0),
         }),
       })
 
@@ -177,13 +206,16 @@ export default function Marketplace() {
       setStartDate('')
       setEndDate('')
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Rental request failed')
+      setMessage(
+        err instanceof Error ? err.message : 'Rental request failed'
+      )
     } finally {
       setRequesting(false)
     }
   }
 
   const today = new Date()
+
   const todayString = [
     today.getFullYear(),
     String(today.getMonth() + 1).padStart(2, '0'),
@@ -191,14 +223,19 @@ export default function Marketplace() {
   ].join('-')
 
   return (
-    <main className="min-h-screen px-5 py-10 md:px-10"
-      style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-
+    <main
+      className="min-h-screen px-5 py-10 md:px-10"
+      style={{ background: 'var(--bg)', color: 'var(--text)' }}
+    >
       <div className="mx-auto max-w-7xl">
 
+        {/* Marketplace Header */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Borro Marketplace</h1>
+            <h1 className="text-3xl font-bold">
+              Borro Marketplace
+            </h1>
+
             <p className="mt-2" style={{ color: 'var(--muted)' }}>
               Find, rent, sell, swap or share items with fellow students.
             </p>
@@ -216,36 +253,63 @@ export default function Marketplace() {
             <button
               onClick={() => setShowForm(true)}
               className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold"
-              style={{ background: 'var(--accent)', color: 'white' }}
+              style={{
+                background: 'var(--accent)',
+                color: 'white',
+              }}
             >
-              <Plus size={18} /> Create Listing
+              <Plus size={18} />
+              Create Listing
             </button>
           </div>
         </div>
 
+        {/* Success Message */}
         {message && (
-          <div className="mb-5 rounded-xl border p-4 text-sm"
-            style={{ borderColor: 'var(--border)' }}>
+          <div
+            className="mb-5 rounded-xl border p-4 text-sm"
+            style={{ borderColor: 'var(--border)' }}
+          >
             {message}
           </div>
         )}
 
+        {/* Error Message */}
         {error && (
           <div className="mb-5 rounded-xl border border-red-300 p-4 text-sm text-red-600">
             {error}
           </div>
         )}
 
+        {/* Search and Category Filter */}
         <div className="mb-7 flex flex-col gap-4 md:flex-row">
-          <div className="flex flex-1 items-center gap-3 rounded-xl border px-4"
-            style={{ borderColor: 'var(--border)', background: 'var(--surface)' }}>
+          <div
+            className="flex flex-1 items-center gap-3 rounded-xl border px-4"
+            style={{
+              borderColor: 'var(--border)',
+              background: 'var(--surface)',
+            }}
+          >
             <Search size={19} />
+
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search items..."
+              aria-label="Search marketplace listings"
               className="w-full bg-transparent py-3 outline-none"
             />
+
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                className="shrink-0"
+              >
+                <X size={18} />
+              </button>
+            )}
           </div>
 
           <select
@@ -259,20 +323,38 @@ export default function Marketplace() {
             }}
           >
             {categories.map((item) => (
-              <option key={item} value={item}>{item}</option>
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
           </select>
         </div>
 
+        {/* Marketplace Listings */}
         {loading ? (
           <p>Loading marketplace...</p>
         ) : filteredListings.length === 0 ? (
-          <div className="rounded-2xl border p-10 text-center"
-            style={{ borderColor: 'var(--border)' }}>
-            <h2 className="text-xl font-semibold">No listings found</h2>
+          <div
+            className="rounded-2xl border p-10 text-center"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <h2 className="text-xl font-semibold">
+              No listings found
+            </h2>
+
             <p className="mt-2" style={{ color: 'var(--muted)' }}>
               Try another search or create a new listing.
             </p>
+
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="mt-4 rounded-xl px-5 py-2 text-sm font-medium text-white"
+                style={{ background: 'var(--accent)' }}
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -292,36 +374,59 @@ export default function Marketplace() {
                     className="h-48 w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-48 items-center justify-center text-5xl"
-                    style={{ background: 'var(--surface-secondary)' }}>
+                  <div
+                    className="flex h-48 items-center justify-center text-5xl"
+                    style={{ background: 'var(--surface-secondary)' }}
+                  >
                     📦
                   </div>
                 )}
 
                 <div className="p-5">
                   <div className="mb-3 flex items-center justify-between gap-2">
-                    <span className="rounded-full px-3 py-1 text-xs"
-                      style={{ background: 'var(--surface-secondary)' }}>
+                    <span
+                      className="rounded-full px-3 py-1 text-xs"
+                      style={{
+                        background: 'var(--surface-secondary)',
+                      }}
+                    >
                       {item.category}
                     </span>
-                    <span className="text-xs capitalize"
-                      style={{ color: 'var(--muted)' }}>
+
+                    <span
+                      className="text-xs capitalize"
+                      style={{ color: 'var(--muted)' }}
+                    >
                       {item.listing_type}
                     </span>
                   </div>
 
-                  <h2 className="text-lg font-semibold">{item.item_name}</h2>
+                  <h2 className="text-lg font-semibold">
+                    {item.item_name}
+                  </h2>
 
-                  <p className="mt-2 line-clamp-2 text-sm"
-                    style={{ color: 'var(--muted)' }}>
+                  <p
+                    className="mt-2 line-clamp-2 text-sm"
+                    style={{ color: 'var(--muted)' }}
+                  >
                     {item.description}
                   </p>
 
-                  <div className="mt-4 space-y-1 text-sm"
-                    style={{ color: 'var(--muted)' }}>
-                    <p>Condition: {item.condition || 'Not specified'}</p>
-                    <p>Location: {item.pickup_location || 'Not specified'}</p>
-                    <p>Owner: {item.owner_name || 'Student'}</p>
+                  <div
+                    className="mt-4 space-y-1 text-sm"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    <p>
+                      Condition: {item.condition || 'Not specified'}
+                    </p>
+
+                    <p>
+                      Location: {item.pickup_location || 'Not specified'}
+                    </p>
+
+                    <p>
+                      Owner: {item.owner_name || 'Student'}
+                    </p>
                   </div>
 
                   <div className="mt-5 flex items-center justify-between">
@@ -329,8 +434,12 @@ export default function Marketplace() {
                       <p className="text-xl font-bold">
                         ₹{Number(item.price || 0).toLocaleString('en-IN')}
                       </p>
+
                       {item.listing_type === 'rent' && (
-                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                        <p
+                          className="text-xs"
+                          style={{ color: 'var(--muted)' }}
+                        >
                           Per day
                         </p>
                       )}
@@ -344,7 +453,10 @@ export default function Marketplace() {
                             setMessage('')
                           }}
                           className="rounded-xl px-4 py-2 text-sm font-semibold"
-                          style={{ background: 'var(--accent)', color: 'white' }}
+                          style={{
+                            background: 'var(--accent)',
+                            color: 'white',
+                          }}
                         >
                           Request to Rent
                         </button>
@@ -357,16 +469,27 @@ export default function Marketplace() {
         )}
       </div>
 
+      {/* Create Listing Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
           <form
             onSubmit={handleCreateListing}
             className="my-8 w-full max-w-xl rounded-2xl p-6"
-            style={{ background: 'var(--surface)', color: 'var(--text)' }}
+            style={{
+              background: 'var(--surface)',
+              color: 'var(--text)',
+            }}
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Create a Listing</h2>
-              <button type="button" onClick={() => setShowForm(false)}>
+              <h2 className="text-xl font-bold">
+                Create a Listing
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                aria-label="Close form"
+              >
                 <X />
               </button>
             </div>
@@ -376,23 +499,31 @@ export default function Marketplace() {
                 required
                 placeholder="Item name"
                 value={form.item_name}
-                onChange={(e) => setForm({ ...form, item_name: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, item_name: e.target.value })
+                }
                 className="rounded-xl border p-3"
               />
 
               <select
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, category: e.target.value })
+                }
                 className="rounded-xl border p-3"
               >
-                {categories.filter((c) => c !== 'All').map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
+                {categories
+                  .filter((c) => c !== 'All')
+                  .map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
               </select>
 
               <select
                 value={form.listing_type}
-                onChange={(e) => setForm({ ...form, listing_type: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, listing_type: e.target.value })
+                }
                 className="rounded-xl border p-3"
               >
                 <option value="rent">Rent</option>
@@ -403,7 +534,9 @@ export default function Marketplace() {
 
               <select
                 value={form.condition}
-                onChange={(e) => setForm({ ...form, condition: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, condition: e.target.value })
+                }
                 className="rounded-xl border p-3"
               >
                 <option>New</option>
@@ -418,7 +551,9 @@ export default function Marketplace() {
                 step="0.01"
                 placeholder="Price (₹)"
                 value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, price: e.target.value })
+                }
                 className="rounded-xl border p-3"
               />
 
@@ -428,21 +563,33 @@ export default function Marketplace() {
                 step="0.01"
                 placeholder="Security deposit (₹)"
                 value={form.security_deposit}
-                onChange={(e) => setForm({ ...form, security_deposit: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    security_deposit: e.target.value,
+                  })
+                }
                 className="rounded-xl border p-3"
               />
 
               <input
                 placeholder="Pickup location"
                 value={form.pickup_location}
-                onChange={(e) => setForm({ ...form, pickup_location: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    pickup_location: e.target.value,
+                  })
+                }
                 className="rounded-xl border p-3 sm:col-span-2"
               />
 
               <input
                 placeholder="Image URL (optional)"
                 value={form.image_url}
-                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, image_url: e.target.value })
+                }
                 className="rounded-xl border p-3 sm:col-span-2"
               />
 
@@ -450,7 +597,9 @@ export default function Marketplace() {
                 required
                 placeholder="Description"
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
                 className="min-h-24 rounded-xl border p-3 sm:col-span-2"
               />
             </div>
@@ -467,29 +616,44 @@ export default function Marketplace() {
         </div>
       )}
 
+      {/* Rental Request Modal */}
       {selectedListing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form
             onSubmit={handleRentalRequest}
             className="w-full max-w-md rounded-2xl p-6"
-            style={{ background: 'var(--surface)', color: 'var(--text)' }}
+            style={{
+              background: 'var(--surface)',
+              color: 'var(--text)',
+            }}
           >
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold">Request Rental</h2>
-                <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
+                <h2 className="text-xl font-bold">
+                  Request Rental
+                </h2>
+
+                <p
+                  className="mt-1 text-sm"
+                  style={{ color: 'var(--muted)' }}
+                >
                   {selectedListing.item_name}
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={() => setSelectedListing(null)}
+                aria-label="Close rental form"
               >
                 <X />
               </button>
             </div>
 
-            <label className="mb-2 block text-sm">Start date</label>
+            <label className="mb-2 block text-sm">
+              Start date
+            </label>
+
             <input
               required
               type="date"
@@ -499,7 +663,10 @@ export default function Marketplace() {
               className="mb-4 w-full rounded-xl border p-3"
             />
 
-            <label className="mb-2 block text-sm">End date</label>
+            <label className="mb-2 block text-sm">
+              End date
+            </label>
+
             <input
               required
               type="date"
@@ -509,15 +676,25 @@ export default function Marketplace() {
               className="mb-4 w-full rounded-xl border p-3"
             />
 
-            <div className="mb-5 rounded-xl p-4"
-              style={{ background: 'var(--surface-secondary)' }}>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            <div
+              className="mb-5 rounded-xl p-4"
+              style={{ background: 'var(--surface-secondary)' }}
+            >
+              <p
+                className="text-sm"
+                style={{ color: 'var(--muted)' }}
+              >
                 Rental price per day
               </p>
+
               <p className="text-xl font-bold">
                 ₹{Number(selectedListing.price || 0).toLocaleString('en-IN')}
               </p>
-              <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+
+              <p
+                className="mt-1 text-xs"
+                style={{ color: 'var(--muted)' }}
+              >
                 Final amount is calculated from the selected dates.
               </p>
             </div>
